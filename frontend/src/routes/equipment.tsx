@@ -311,7 +311,7 @@ export function EquipmentPage() {
         </Card>
       )}
 
-      {/* EQUIPMENT CATALOG & ADMIN CONTROLS GRID */}
+  {/* EQUIPMENT CATALOG & ADMIN CONTROLS GRID */}
       <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-3" : "grid-cols-1"}`}>
         {/* CATALOG TABLE */}
         <Card className={`overflow-hidden p-0 shadow-card ${isAdmin ? "xl:col-span-2" : ""}`}>
@@ -332,17 +332,13 @@ export function EquipmentPage() {
                 <TableHead className="text-right">Daily Rate</TableHead>
                 <TableHead className="text-right">Available / Total</TableHead>
                 <TableHead>Status</TableHead>
-                {isAdmin ? (
-                  <TableHead className="text-right">Actions</TableHead>
-                ) : (
-                  <TableHead className="text-right">Action</TableHead>
-                )}
+                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredEquipment.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 7 : 7} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={isAdmin ? 7 : 6} className="text-center py-6 text-muted-foreground">
                     No equipment found matching "{q}".
                   </TableCell>
                 </TableRow>
@@ -380,7 +376,7 @@ export function EquipmentPage() {
                         <StatusBadge value={e.status} />
                       </TableCell>
 
-                      {isAdmin ? (
+                      {isAdmin && (
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button
@@ -408,32 +404,6 @@ export function EquipmentPage() {
                               <Trash2 className="size-3.5" />
                             </Button>
                           </div>
-                        </TableCell>
-                      ) : (
-                        <TableCell className="text-right">
-                          {isNonMember ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-7 border-amber-300 hover:bg-amber-100"
-                              onClick={() => s.triggerUpgradeModal("Equipment Checkout")}
-                            >
-                              Borrow
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              className="text-xs h-7"
-                              disabled={e.available_quantity <= 0 || e.status === "Under Maintenance"}
-                              onClick={() => {
-                                setBorrowItem(e);
-                                setBorrowIssueDate(today);
-                                setBorrowDueDate(defaultDue);
-                              }}
-                            >
-                              Borrow
-                            </Button>
-                          )}
                         </TableCell>
                       )}
                     </TableRow>

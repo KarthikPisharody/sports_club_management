@@ -261,49 +261,61 @@ function useStoreState() {
   };
 
   const registerAndSubscribe = (userData: {
-    username: string;
-    email: string;
-    phone: string;
-    tier: "Gold" | "Platinum";
-    billingCycle?: "monthly" | "yearly";
-    paymentMethod?: string;
-  }): AuthResult & { member?: M.Member } => {
-    const identity = resolveUniqueIdentity(
-      members.map((m) => ({
-        id: m.member_id,
-        username: m.username || m.member_name,
-        email: m.email,
-      })),
-      userData.username,
-      userData.email
-    );
-    if (!identity.ok) return identity;
+  username: string;
+  email: string;
+  phone: string;
+  tier: "Gold" | "Platinum";
+  billingCycle?: "monthly" | "yearly";
+  paymentMethod?: string;
+}): AuthResult & { member?: M.Member } => {
+  const cleanUsername = userData.username.trim();
+  const cleanEmail = userData.email.trim().toLowerCase();
+  const cleanPhone = userData.phone.trim();
 
-    const existing = members.find((m) => m.member_id === identity.record.id);
-    if (!existing) {
-      return {
-        ok: false,
-        status: 400,
-        message: "No pre-existing club record found for this username and email.",
-      };
-    }
+  // 1. Check if email or username is already taken by another account
+  const existing = members.find(
+    (m) => 
+      m.email.toLowerCase() === cleanEmail || 
+      (m.username && m.username.toLowerCase() === cleanUsername) || 
+      (m.member_name && m.member_name.toLowerCase() === cleanUsername)
+  );
 
-    const plan = M.plans.find((p) => p.plan_name === userData.tier);
-    const phoneValue = userData.phone.trim();
-    const updated: M.Member = {
-      ...existing,
-      member_name: userData.username.trim(),
-      username: userData.username.trim(),
-      email: userData.email.trim(),
-      phone: phoneValue,
+  const plan = M.plans.find((p) => p.plan_name === userData.tier);
+
+  // 2. If no record exists, create a brand-new non-member account on the fly!
+  if (!existing) {
+    const newMember: M.Member = {
+      member_id: `MEM-${Date.now()}`,
+      member_name: cleanUsername,
+      username: cleanUsername,
+      email: cleanEmail,
+      phone: cleanPhone,
       tier: userData.tier,
-      plan_id: plan?.plan_id ?? existing.plan_id,
-      wallet_balance: existing.member_id === "M000" ? 0 : existing.wallet_balance,
+      plan_id: plan?.plan_id ?? "P1",
+      wallet_balance: 0, // Wallet starts at 0
     };
-    setMembers((prev) => prev.map((m) => (m.member_id === existing.member_id ? updated : m)));
-    log("wallet", `${userData.username} purchased ${userData.tier} Membership (${userData.billingCycle ?? "monthly"})`);
-    return { ok: true, member: updated };
+
+    setMembers((prev) => [...prev, newMember]);
+    log("wallet", `${cleanUsername} registered and purchased ${userData.tier} Membership (${userData.billingCycle ?? "monthly"})`);
+    return { ok: true, member: newMember };
+  }
+
+  // 3. If an existing record is found, update their subscription and details
+  const updated: M.Member = {
+    ...existing,
+    member_name: cleanUsername,
+    username: cleanUsername,
+    email: cleanEmail,
+    phone: cleanPhone,
+    tier: userData.tier,
+    plan_id: plan?.plan_id ?? existing.plan_id,
+    wallet_balance: existing.member_id === "M000" ? 0 : existing.wallet_balance,
   };
+
+  setMembers((prev) => prev.map((m) => (m.member_id === existing.member_id ? updated : m)));
+  log("wallet", `${cleanUsername} purchased ${userData.tier} Membership (${userData.billingCycle ?? "monthly"})`);
+  return { ok: true, member: updated };
+};
 
   const upgradeMembership = (tier: "Gold" | "Platinum", billingCycle: "monthly" | "yearly" = "monthly") => {
     const plan = M.plans.find((p) => p.plan_name === tier);
